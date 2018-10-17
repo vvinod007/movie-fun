@@ -18,6 +18,9 @@ package org.superbiz.moviefun;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallbackWithoutResult;
+import org.springframework.transaction.support.TransactionOperations;
 import org.superbiz.moviefun.movies.Movie;
 import org.superbiz.moviefun.movies.MoviesBean;
 
@@ -39,8 +42,16 @@ public class ActionServlet extends HttpServlet {
 
     public static int PAGE_SIZE = 5;
 
-    @EJB
     private MoviesBean moviesBean;
+    private final TransactionOperations transactionOperations_Movies;
+    private final TransactionOperations transactionOperations_Albums;
+
+
+    public ActionServlet(MoviesBean moviesBean,TransactionOperations transactionOperations_Movies,TransactionOperations transactionOperations_Albums) {
+        this.moviesBean = moviesBean;
+        this.transactionOperations_Albums = transactionOperations_Albums;
+        this.transactionOperations_Movies = transactionOperations_Movies;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -65,7 +76,13 @@ public class ActionServlet extends HttpServlet {
 
             Movie movie = new Movie(title, director, genre, rating, year);
 
-            moviesBean.addMovie(movie);
+           // moviesBean.addMovie(movie);
+            transactionOperations_Movies.execute(new TransactionCallbackWithoutResult() {
+                @Override
+                protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
+                    moviesBean.addMovie(movie);
+                }
+            });
             response.sendRedirect("moviefun");
             return;
 
